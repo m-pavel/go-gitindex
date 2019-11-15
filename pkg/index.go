@@ -10,6 +10,7 @@ import (
 	"gopkg.in/libgit2/git2go.v26"
 )
 
+// GitIndex structure handles git repo indexing
 type GitIndex struct {
 	repo     *git.Repository
 	gitdir   string
@@ -18,25 +19,29 @@ type GitIndex struct {
 	index    bleve.Index
 }
 
+// GitEntry structure
 type GitEntry struct {
-	Id          string `json:"id"`
+	IndexID     string `json:"-"`
+	ID          string `json:"id"`
 	Msg         string `json:"message"`
 	Author      string `json:"author_name"`
 	AuthorEmail string `json:"author_email"`
 }
 
 func fromCommit(commit *git.Commit) *GitEntry {
-	return &GitEntry{Id: commit.Id().String(), Msg: commit.Message(), Author: commit.Author().Name, AuthorEmail: commit.Author().Email}
+	return &GitEntry{ID: commit.Id().String(), Msg: commit.Message(), Author: commit.Author().Name, AuthorEmail: commit.Author().Email}
 }
-func fromMap(m map[string]interface{}) *GitEntry {
-	return &GitEntry{Id: m["id"].(string), Msg: m["message"].(string), Author: m["author_name"].(string), AuthorEmail: m["author_email"].(string)}
+func fromMap(id string, m map[string]interface{}) *GitEntry {
+	return &GitEntry{IndexID: id, ID: m["id"].(string), Msg: m["message"].(string), Author: m["author_name"].(string), AuthorEmail: m["author_email"].(string)}
 }
 
+// NewLocal repo
 func NewLocal(repo *git.Repository, indexdir string, idprefix string) (*GitIndex, error) {
 	gi := GitIndex{indexdir: indexdir, repo: repo, idprefix: idprefix}
 	return &gi, nil
 }
 
+// New remote repo
 func New(url string, indexdir string, idprefix ...string) (*GitIndex, error) {
 	var err error
 	var dir string
@@ -59,6 +64,7 @@ func New(url string, indexdir string, idprefix ...string) (*GitIndex, error) {
 	}
 }
 
+// Close structure and free resources
 func (gi *GitIndex) Close() error {
 	if gi.gitdir != "" {
 		if err := os.RemoveAll(gi.gitdir); err != nil {
@@ -68,6 +74,7 @@ func (gi *GitIndex) Close() error {
 	return gi.index.Close()
 }
 
+// Index repository
 func (gi *GitIndex) Index() error {
 	var err error
 	if gi.index, err = getIndex(gi.indexdir); err != nil {
@@ -78,7 +85,7 @@ func (gi *GitIndex) Index() error {
 	if err != nil {
 		return err
 	}
-	bi.ForEach(func(b *git.Branch, bt git.BranchType) error {
+	return bi.ForEach(func(b *git.Branch, bt git.BranchType) error {
 		r, err := gi.repo.Head()
 		if err != nil {
 			return err
@@ -90,7 +97,6 @@ func (gi *GitIndex) Index() error {
 		gi.processCommit(c)
 		return nil
 	})
-	return nil
 }
 
 func getIndex(dir string) (bleve.Index, error) {
@@ -99,11 +105,12 @@ func getIndex(dir string) (bleve.Index, error) {
 	fi, err := os.Stat(dir)
 	if err == nil && fi.IsDir() {
 		return bleve.Open(dir)
-	} else {
-		mapping := bleve.NewIndexMapping()
-		return bleve.New(dir, mapping)
 	}
+	mapping := bleve.NewIndexMapping()
+	return bleve.New(dir, mapping)
 }
+
+// Search through indexed repository
 func Search(indexdir, msg string, minScore float64) ([]*GitEntry, error) {
 	var batch uint64
 	batch = 30
@@ -139,7 +146,7 @@ func Search(indexdir, msg string, minScore float64) ([]*GitEntry, error) {
 func processResult(searchResult *bleve.SearchResult, res []*GitEntry, residx *int, minScore float64) {
 	for _, h := range searchResult.Hits {
 		if h.Score >= minScore {
-			res[*residx] = fromMap(h.Fields)
+			res[*residx] = fromMap(h.ID, h.Fields)
 			*residx++
 		}
 	}
