@@ -114,8 +114,9 @@ func (gi *GitIndex) Index(branch ...string) error {
 		if err != nil {
 			return err
 		}
-		gi.processCommit(c)
-		return nil
+		btch := gi.index.NewBatch()
+		gi.processCommit(c, btch)
+		return gi.index.Batch(btch)
 	})
 }
 
@@ -172,11 +173,11 @@ func processResult(searchResult *bleve.SearchResult, res []*GitEntry, residx *in
 	}
 }
 
-func (gi *GitIndex) processCommit(c *git.Commit) {
+func (gi *GitIndex) processCommit(c *git.Commit, b *bleve.Batch) {
 	//fmt.Printf("%s %s %s\n", c.Id().String(), c.Author(), c.Message())
-	gi.index.Index(fmt.Sprintf("%s-%s", gi.idprefix, c.Id().String()), fromCommit(c))
+	b.Index(fmt.Sprintf("%s-%s", gi.idprefix, c.Id().String()), fromCommit(c))
 	for i := 0; i < int(c.ParentCount()); i++ {
 		cp := c.Parent(uint(i))
-		gi.processCommit(cp)
+		gi.processCommit(cp, b)
 	}
 }
