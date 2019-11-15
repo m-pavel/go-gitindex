@@ -3,6 +3,7 @@ package index
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/blevesearch/bleve"
@@ -115,7 +116,8 @@ func (gi *GitIndex) Index(branch ...string) error {
 			return err
 		}
 		btch := gi.index.NewBatch()
-		gi.processCommit(c, btch)
+		ctx := make(map[string]bool)
+		gi.processCommit(c, btch, ctx)
 		return gi.index.Batch(btch)
 	})
 }
@@ -173,11 +175,17 @@ func processResult(searchResult *bleve.SearchResult, res []*GitEntry, residx *in
 	}
 }
 
-func (gi *GitIndex) processCommit(c *git.Commit, b *bleve.Batch) {
-	//fmt.Printf("%s %s %s\n", c.Id().String(), c.Author(), c.Message())
-	b.Index(fmt.Sprintf("%s-%s", gi.idprefix, c.Id().String()), fromCommit(c))
+func (gi *GitIndex) processCommit(c *git.Commit, b *bleve.Batch, ctx map[string]bool) {
+	if ok, _ := ctx[c.Id().String()]; ok {
+		return
+	}
+	ctx[c.Id().String()] = true
+	fmt.Printf("%s %s %s\n", c.Id().String(), c.Author(), c.Message())
+	if err := b.Index(fmt.Sprintf("%s-%s", gi.idprefix, c.Id().String()), fromCommit(c)); err != nil {
+		log.Println(err)
+	}
 	for i := 0; i < int(c.ParentCount()); i++ {
 		cp := c.Parent(uint(i))
-		gi.processCommit(cp, b)
+		gi.processCommit(cp, b, ctx)
 	}
 }
