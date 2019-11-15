@@ -180,7 +180,7 @@ func (gi *GitIndex) processCommit(c *git.Commit, b *bleve.Batch, ctx map[string]
 		return
 	}
 	ctx[c.Id().String()] = true
-	fmt.Printf("%s %s %s\n", c.Id().String(), c.Author(), c.Message())
+	//fmt.Printf("%s %s %s\n", c.Id().String(), c.Author(), c.Message())
 	if err := b.Index(fmt.Sprintf("%s-%s", gi.idprefix, c.Id().String()), fromCommit(c)); err != nil {
 		log.Println(err)
 	}
