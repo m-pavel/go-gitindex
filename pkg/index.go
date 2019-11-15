@@ -75,7 +75,7 @@ func (gi *GitIndex) Close() error {
 }
 
 // Index repository
-func (gi *GitIndex) Index() error {
+func (gi *GitIndex) Index(branch ...string) error {
 	var err error
 	if gi.index, err = getIndex(gi.indexdir); err != nil {
 		return err
@@ -86,6 +86,26 @@ func (gi *GitIndex) Index() error {
 		return err
 	}
 	return bi.ForEach(func(b *git.Branch, bt git.BranchType) error {
+		if len(branch) > 0 {
+			match := false
+			bname, err := b.Name()
+			if err != nil {
+				return err
+			}
+			if len(branch) == 1 && branch[0] == "" {
+				match = true
+			} else {
+				for _, gb := range branch {
+					if gb == bname {
+						match = true
+						break
+					}
+				}
+			}
+			if !match {
+				return nil
+			}
+		}
 		r, err := gi.repo.Head()
 		if err != nil {
 			return err
