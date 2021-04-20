@@ -2,6 +2,7 @@ package index
 
 import (
 	"fmt"
+	"github.com/docker/docker/builder/remotecontext/git"
 	"io/ioutil"
 	"log"
 	"os"
