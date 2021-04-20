@@ -8,7 +8,7 @@ import (
 
 	"github.com/blevesearch/bleve"
 
-	"github.com/libgit2/git2go/v28"
+	"github.com/libgit2/git2go/v27"
 )
 
 // GitIndex structure handles git repo indexing
