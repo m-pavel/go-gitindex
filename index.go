@@ -8,7 +8,7 @@ import (
 
 	"github.com/blevesearch/bleve"
 
-	"github.com/libgit2/git2go/v28"
+	git "github.com/libgit2/git2go/v28"
 )
 
 // GitIndex structure handles git repo indexing
@@ -27,13 +27,14 @@ type GitEntry struct {
 	Msg         string `json:"message"`
 	Author      string `json:"author_name"`
 	AuthorEmail string `json:"author_email"`
+	Time        int64  `json:"time"`
 }
 
 func fromCommit(commit *git.Commit) *GitEntry {
-	return &GitEntry{ID: commit.Id().String(), Msg: commit.Message(), Author: commit.Author().Name, AuthorEmail: commit.Author().Email}
+	return &GitEntry{ID: commit.Id().String(), Msg: commit.Message(), Author: commit.Author().Name, AuthorEmail: commit.Author().Email, Time: commit.Author().When.UnixNano()}
 }
 func fromMap(id string, m map[string]interface{}) *GitEntry {
-	return &GitEntry{IndexID: id, ID: m["id"].(string), Msg: m["message"].(string), Author: m["author_name"].(string), AuthorEmail: m["author_email"].(string)}
+	return &GitEntry{IndexID: id, ID: m["id"].(string), Msg: m["message"].(string), Author: m["author_name"].(string), AuthorEmail: m["author_email"].(string), Time: m["time"].(int64)}
 }
 
 // NewLocal repo
