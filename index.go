@@ -34,7 +34,8 @@ func fromCommit(commit *git.Commit) *GitEntry {
 	return &GitEntry{ID: commit.Id().String(), Msg: commit.Message(), Author: commit.Author().Name, AuthorEmail: commit.Author().Email, Time: commit.Author().When.UnixNano()}
 }
 func fromMap(id string, m map[string]interface{}) *GitEntry {
-	return &GitEntry{IndexID: id, ID: m["id"].(string), Msg: m["message"].(string), Author: m["author_name"].(string), AuthorEmail: m["author_email"].(string), Time: m["time"].(int64)}
+	tm := m["time"].(float64)
+	return &GitEntry{IndexID: id, ID: m["id"].(string), Msg: m["message"].(string), Author: m["author_name"].(string), AuthorEmail: m["author_email"].(string), Time: int64(tm)}
 }
 
 // NewLocal repo
